@@ -37,7 +37,7 @@ def Select(fitRDD, POPULATION_SIZE, ELITE_SIZE):
 
 # 交叉
 
-def CROSSOVER_BAK(ele): # RDD层面的交叉操作
+def CROSSOVER_FUNC(ele): # RDD层面的交叉操作
     def crossover(a_chr, b_chr): # 两个个体交叉操作
         size = len(a_chr) # 取出染色体的长度
 
@@ -56,23 +56,6 @@ def CROSSOVER_BAK(ele): # RDD层面的交叉操作
     ele[1][1] = 0
     return ele[0],ele[1]
 
-def CROSSOVER(ele): # RDD层面的交叉操作
-    
-    a_Chr = ele[0][0][0]
-    b_chr = ele[0][1][0]
-    size = len(a_chr) # 取出染色体的长度
-
-    f = random.randint(0, size) # 选取两个基因点，准备交叉
-    s = random.randint(f, size)
-
-    _a = a_chr[:f] + b_chr[f:s] + a_chr[s:]
-    _b = b_chr[:f] + a_chr[f:s] + b_chr[s:]
-    
-    ele[0][0][0] = _a
-    ele[0][1][0] = _b     
-    ele[0][0][1] = 0
-    ele[0][1][1] = 0
-    return ele[0][0],ele[0][1]
 
 # 变异部分
            
@@ -97,53 +80,63 @@ def Mutation(ele):  # 选择变异的个体，RDD 层面
 random.seed(64) # 随机种子设置
 #---------------------------------------
 # Constant Variables
-CHROMOSOME_SIZE = 10 # 染色体尺寸
+CHROMOSOME_SIZE = 100 # 染色体尺寸
 GENE_MUTATION = 0.05 # 基因变异率
 INDIVIDUAL_MUTATION = 0.2 # 个体变异率
 CROSSOVER = 0.5
-POPULATION_SIZE = 40 # 种群数量
+POPULATION_SIZE = 30 # 种群数量
 ELITE_PERCENTAGE = 0.5
 #ELITE_SIZE = int(POPULATION_SIZE * ELITE_PERCENTAGE)
-ELITE_SIZE = 2 
+ELITE_SIZE = 4
 GENERATION_MAX = 100 # 最大迭代次数
 #------------------------------------------------
 # starts
 start = time.clock() # 开始计时
 population = MakePop(POPULATION_SIZE, CHROMOSOME_SIZE) # initial population
-popRDD = sc.parallelize(population) 
-fitRDD = popRDD.map(EvaForEachInd)
-fitValues = [ele[1] for ele in fitRDD.collect()]
-#--------------------------------------------------
-# Fitness statistics 
-print("{0} Generation ---".format(1))
-print("\tMIN: {0}".format(min(fitValues)))
-print("\tMAX: {0}".format(max(fitValues)))
-print("\tAVG: {0}".format(round(sum(fitValues) / len(fitValues), 3)), "\n")
+for G in range(GENERATION_MAX):
+    popRDD = sc.parallelize(population) 
+    fitRDD = popRDD.map(EvaForEachInd)
+    fitValues = [ele[1] for ele in fitRDD.collect()]
+    #--------------------------------------------------
+    # Fitness statistics 
+    print("{0} Generation ---".format(G))
+    print("\tMIN: {0}".format(min(fitValues)))
+    print("\tMAX: {0}".format(max(fitValues)))
+    print("\tAVG: {0}".format(round(sum(fitValues) / len(fitValues), 3)), "\n")
+    
+    # ------------------------------------------------------
+    # select elites and remained populations
+    eliteRDD, RemainPopRDD = Select(fitRDD, POPULATION_SIZE, ELITE_SIZE)
+    #------------------------------------------------
+    # crossover
+    RemainPopList = RemainPopRDD.collect()
+    PairRDD = sc.parallelize(RemainPopList, int(len(RemainPopList)/2)).glom()
+    CrossedRDD = PairRDD.flatMap(CROSSOVER_FUNC)
+    CrossedList = CrossedRDD.collect()
+    random.shuffle(CrossedList)
+    CrossedRDD = sc.parallelize(CrossedList)
+    #--------------------------------------------------
+    # mutations
+    MutatedRDD = CrossedRDD.map(Mutation)
+    # -------------------------------------------------
+    # get new generations
+    MutatedList = MutatedRDD.collect()
+    eliteList = eliteRDD.collect()
+    population = MutatedList + eliteList
+    # new generation population RDD
+    popRDD = sc.parallelize(population)
+    if eliteList[0][1] == 1:
+        break
+    print("-"*30, "\nThe elites are :")
+    for ele in eliteList:
+        print(ele)
+    
+elapsed = (time.clock() - start)
+print("Time used:%d Seconds",elapsed)
+m, s = divmod(elapsed, 60)
+h, m = divmod(m, 60)
+print ("Transfer to Hour&Min&Sec is : %02d:%02d:%02d" % (h, m, s))
 
-# ------------------------------------------------------
-# select elites and remained populations
-eliteRDD, RemainPopRDD = Select(fitRDD, POPULATION_SIZE, ELITE_SIZE)
-#------------------------------------------------
-# crossover
-RemainPopList = RemainPopRDD.collect()
-PairRDD = sc.parallelize(RemainPopList, int(len(RemainPopList)/2)).glom()
-print(PairRDD.take(1))
-CrossedRDD = PairRDD.flatMap(CROSSOVER)
-CrossedList = CrossedRDD.collect()
-random.shuffle(CrossedList)
-CrossedRDD = sc.parallelize(CrossedList)
-#--------------------------------------------------
-# mutations
-MutatedRDD = CrossedRDD.map(Mutation)
-# -------------------------------------------------
-# get new generations
-MutatedList = MutatedRDD.collect()
-eliteList = eliteRDD.collect()
-population = MutatedList + eliteList
-# new generation population RDD
-popRDD = sc.parallelize(population)
-
-print(popRDD.collect())
 
 
 

@@ -47,14 +47,14 @@ def mutate(population, individual_mutation, gene_mutation): # 变异函数，参
 
 random.seed(64) # 随机种子设置
 
-CHROMOSOME_SIZE = 1000 # 染色体尺寸
+CHROMOSOME_SIZE = 10000 # 染色体尺寸
 GENE_MUTATION = 0.05 # 基因变异率
 INDIVIDUAL_MUTATION = 0.2 # 个体变异率
 CROSSOVER = 0.5
-POPULATION_SIZE = 300 # 种群数量
+POPULATION_SIZE = 1000 # 种群数量
 ELITE_PERCENTAGE = 0.5
 #ELITE_SIZE = int(POPULATION_SIZE * ELITE_PERCENTAGE)
-ELITE_SIZE = 10
+ELITE_SIZE = 100
 GENERATION_MAX = 10000 # 最大迭代次数
 
 
@@ -76,9 +76,6 @@ if __name__ == '__main__':
         # Result 提取出所有的适应度
         result = [p.fitness for p in population]
         print("{0} Generation ---".format(generation + 1))
-        print("\tMIN: {0}".format(min(result)))
-        print("\tMAX: {0}".format(max(result)))
-        print("\tAVG: {0}".format(round(sum(result) / len(result), 3)), "\n")
 
         # Select 选择出精英者，和剩下的种群
         selected_individual, population = select_individual(population, ELITE_SIZE)
@@ -95,12 +92,20 @@ if __name__ == '__main__':
 
         # Update population
         population = offspring
+        
+        if selected_individual[0].fitness == 1:
+            break
 
     print("-"*30, "\nResult:")
     print(selected_individual[0].chromosome)
     
-    elapsed = (time.clock() - start)
-    print("Time used:%d Seconds",elapsed)
-    m, s = divmod(elapsed, 60)
-    h, m = divmod(m, 60)
-    print ("Transfer to Hour&Min&Sec is : %02d:%02d:%02d" % (h, m, s))
+    print("\tMIN: {0}".format(min(result)))
+    print("\tMAX: {0}".format(max(result)))
+    print("\tAVG: {0}".format(round(sum(result) / len(result), 3)), "\n")
+    
+    # elapsed = (time.clock() - start)
+    # print("Time used:%d Seconds",elapsed)
+    # m, s = divmod(elapsed, 60)
+    # h, m = divmod(m, 60)
+    # print ("Transfer to Hour&Min&Sec is : %02d:%02d:%02d" % (h, m, s))
+# 

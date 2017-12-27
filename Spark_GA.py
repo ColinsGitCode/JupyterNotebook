@@ -11,7 +11,7 @@ sc = SparkContext(conf = conf)
 #-----------------------------------------------
 # Functions Parts
 
-def MakePop(pop_size, ind_size): 
+def MakePop(pop_size, ind_size):
     # Create Populations for initialization
     lisPop = []
     for i in range(pop_size):
@@ -49,7 +49,7 @@ def CROSSOVER_FUNC(ele): # RDD层面的交叉操作
 
         _a = a_chr[:f] + b_chr[f:s] + a_chr[s:]
         _b = b_chr[:f] + a_chr[f:s] + b_chr[s:]
-    
+
         return _a, _b
 
     a_Chromo, b_Chromo = crossover(ele[0][0],ele[1][0])
@@ -61,8 +61,8 @@ def CROSSOVER_FUNC(ele): # RDD层面的交叉操作
 
 
 # 变异部分
-           
-def Mutation(ele):  # 选择变异的个体，RDD 层面    
+
+def Mutation(ele):  # 选择变异的个体，RDD 层面
     def MutationForInd(gene): # 基因变异
         global GENE_MUTATION
         for i in gene:
@@ -83,30 +83,30 @@ def Mutation(ele):  # 选择变异的个体，RDD 层面
 random.seed(64) # 随机种子设置
 #---------------------------------------
 # Constant Variables
-CHROMOSOME_SIZE = 1000 # 染色体尺寸
+CHROMOSOME_SIZE = 100 # 染色体尺寸
 GENE_MUTATION = 0.05 # 基因变异率
 INDIVIDUAL_MUTATION = 0.2 # 个体变异率
 CROSSOVER = 0.5
-POPULATION_SIZE = 100 # 种群数量
+POPULATION_SIZE = 30 # 种群数量
 ELITE_PERCENTAGE = 0.5
 #ELITE_SIZE = int(POPULATION_SIZE * ELITE_PERCENTAGE)
-ELITE_SIZE = 10
+ELITE_SIZE = 4
 GENERATION_MAX = 10000 # 最大迭代次数
 #------------------------------------------------
 # starts
 start = time.clock() # 开始计时
 population = MakePop(POPULATION_SIZE, CHROMOSOME_SIZE) # initial population
 for G in range(GENERATION_MAX):
-    popRDD = sc.parallelize(population) 
+    popRDD = sc.parallelize(population)
     fitRDD = popRDD.map(EvaForEachInd)
     fitList = fitRDD.collect()
     # fitValues = [ele[1] for ele in fitRDD.collect()]
-    
+
     #--------------------------------------------------
-    # Fitness statistics 
+    # Fitness statistics
     print("{0} Generation ---".format(G))
-    
-    
+
+
     # ------------------------------------------------------
     # select elites and remained populations
     eliteList, RemainPopList = Select(fitList, POPULATION_SIZE, ELITE_SIZE)
@@ -133,13 +133,13 @@ for G in range(GENERATION_MAX):
     # print("-"*30, "\nThe elites are :")
     # for ele in eliteList:
     #     print(ele)
-     
-# print("\n")        
-# print("The last generation's stats: \n")        
+
+# print("\n")
+# print("The last generation's stats: \n")
 # print("\tMIN: {0}".format(min(fitValues)))
 # print("\tMAX: {0}".format(max(fitValues)))
 # print("\tAVG: {0}".format(round(sum(fitValues) / len(fitValues), 3)), "\n")
-print("-"*30, "\nThe best one is :") 
+print("-"*30, "\nThe best one is :")
 print(eliteList[0])
 # Best_MAX = sum(eliteList[0][0])
 # print("The MAX is : %d" %Best_MAX)

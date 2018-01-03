@@ -10,14 +10,9 @@ import math
 #  Vector Create functions
 # ----------------------------------------------------------------------
 def delete_strings_symbols(s):
+    '''Delete the symbols in a strings'''
     NoSpecialChars = s.translate ({ord(c): (" "+ c +" ") for c in "!@#$%^&*()[]{};:,./<>?\|`~-=_+"})
     return NoSpecialChars
-
-def remove_symbols_in_string(text,newsign=''):
-    signtext = string.punctuation + newsign
-    signrepl = '@'*len(signtext)
-    signtable = str.maketrans(signtext,signrepl)
-    return text.translate(signtable).replace('@','')
 
 def read_tsv_by_line(fileName):
     '''Read .tsv files line by line and return the lines as a list'''
@@ -44,6 +39,7 @@ def split_line_by_tab(tsvLines):
     return newLines
 
 def remove_symbols_by_line(Lines):
+    '''Delete the symbols in each line of .tsv files and .csv files'''
     noSymbolLines = []
     for ele in Lines:
         ele[1] = delete_strings_symbols(ele[1])
@@ -61,6 +57,7 @@ def update_dictionary_by_line(line,dictionary):
     return dictionary
 
 def get_whole_file_dictionary(lines):
+    '''Return the dictionary of a file'''
     dictionary = {}
     for ele in lines:
         dictionary = update_dictionary_by_line(ele[1],dictionary)
@@ -93,6 +90,7 @@ def each_line_to_vector(line,dictKeysList):
     return lineVector
 
 def lines_to_vectors_Training(lines,dictionary):
+    '''Transfer each line to vectors'''
     linesVectors = []
     listDictionary = list(dictionary.keys())
     for ele in lines:
@@ -104,17 +102,6 @@ def lines_to_vectors_Training(lines,dictionary):
         linesVectors.append(theVector)
     return linesVectors
 
-def write_result_in_csv(predictions,csvfile):
-    with open(csvfile, "w") as output:
-        writer = csv.writer(output, lineterminator='\n')
-        count = 1
-        for val in predictions:
-            if val == 0:
-                writer.writerow([count,"ham"])
-                count += 1
-            else:
-                writer.writerow([count,"spam"])
-                count += 1
 
 # ----------------------------------------------------------------------
 # NBC functions
@@ -126,38 +113,39 @@ def split_dataset(dataset, splitRatio):
     trainSet = []
     copy = list(dataset)
     while len(trainSet) < trainSize:
-	    index = random.randrange(len(copy))
-	    trainSet.append(copy.pop(index))
+        index = random.randrange(len(copy))
+        trainSet.append(copy.pop(index))
     return [trainSet, copy]
 
 def separate_by_class(dataset):
-	separated = {}
-	for i in range(len(dataset)):
-		vector = dataset[i]
-		if (vector[-1] not in separated):
-			separated[vector[-1]] = []
-		separated[vector[-1]].append(vector)
-	return separated
+    '''Separate the dataset by ham and spam'''
+    separated = {}
+    for i in range(len(dataset)):
+        vector = dataset[i]
+        if (vector[-1] not in separated):
+            separated[vector[-1]] = []
+            separated[vector[-1]].append(vector)
+    return separated
 
 def mean(numbers):
-	return sum(numbers)/float(len(numbers))
+    return sum(numbers)/float(len(numbers))
 
 def stdev(numbers):
-	avg = mean(numbers)
-	variance = sum([pow(x-avg,2) for x in numbers])/float(len(numbers)-1)
-	return math.sqrt(variance)
+    avg = mean(numbers)
+    variance = sum([pow(x-avg,2) for x in numbers])/float(len(numbers)-1)
+    return math.sqrt(variance)
 
 def summarize(dataset):
-	summaries = [(mean(attribute), stdev(attribute)) for attribute in zip(*dataset)]
-	del summaries[-1]
-	return summaries
+    summaries = [(mean(attribute), stdev(attribute)) for attribute in zip(*dataset)]
+    del summaries[-1]
+    return summaries
 
 def summarize_by_class(dataset):
-	separated = separate_by_class(dataset)
-	summaries = {}
-	for classValue, instances in separated.items():
-		summaries[classValue] = summarize(instances)
-	return summaries
+    separated = separate_by_class(dataset)
+    summaries = {}
+    for classValue, instances in separated.items():
+        summaries[classValue] = summarize(instances)
+    return summaries
 
 def calculate_probability(x, mean, stdev):
     if mean == 0 or stdev == 0:
@@ -167,41 +155,41 @@ def calculate_probability(x, mean, stdev):
         return (1 / (math.sqrt(2*math.pi) * stdev)) * exponent
 
 def calculateProbability_Bak(x, mean, stdev):
-	exponent = math.exp(-(math.pow(x-mean,2)/(2*math.pow(stdev,2))))
-	return (1 / (math.sqrt(2*math.pi) * stdev)) * exponent
+    exponent = math.exp(-(math.pow(x-mean,2)/(2*math.pow(stdev,2))))
+    return (1 / (math.sqrt(2*math.pi) * stdev)) * exponent
 
 def calculate_class_probabilities(summaries, inputVector):
-	probabilities = {}
-	for classValue, classSummaries in summaries.items():
-		probabilities[classValue] = 1
-		for i in range(len(classSummaries)):
-			mean, stdev = classSummaries[i]
-			x = inputVector[i]
-			probabilities[classValue] *= calculate_probability(x, mean, stdev)
-	return probabilities
+    probabilities = {}
+    for classValue, classSummaries in summaries.items():
+        probabilities[classValue] = 1
+        for i in range(len(classSummaries)):
+            mean, stdev = classSummaries[i]
+            x = inputVector[i]
+            probabilities[classValue] *= calculate_probability(x, mean, stdev)
+    return probabilities
 
 def predict(summaries, inputVector):
-	probabilities = calculate_class_probabilities(summaries, inputVector)
-	bestLabel, bestProb = None, -1
-	for classValue, probability in probabilities.items():
-		if bestLabel is None or probability > bestProb:
-			bestProb = probability
-			bestLabel = classValue
-	return bestLabel
+    probabilities = calculate_class_probabilities(summaries, inputVector)
+    bestLabel, bestProb = None, -1
+    for classValue, probability in probabilities.items():
+        if bestLabel is None or probability > bestProb:
+            bestProb = probability
+            bestLabel = classValue
+    return bestLabel
 
 def get_predictions(summaries, testSet):
-	predictions = []
-	for i in range(len(testSet)):
-		result = predict(summaries, testSet[i])
-		predictions.append(result)
-	return predictions
+    predictions = []
+    for i in range(len(testSet)):
+        result = predict(summaries, testSet[i])
+        predictions.append(result)
+    return predictions
 
 def get_accuracy(testSet, predictions):
-	correct = 0
-	for x in range(len(testSet)):
-		if testSet[x][-1] == predictions[x]:
-			correct += 1
-	return (correct/float(len(testSet))) * 100.0
+    correct = 0
+    for x in range(len(testSet)):
+        if testSet[x][-1] == predictions[x]:
+            correct += 1
+    return (correct/float(len(testSet))) * 100.0
 
 def sms_dataset(splitRatio = 0.67):
     trainFileLines,trainFileDict = read_file_and_return_each_line_and_dictionary("sms_train.tsv")
@@ -210,7 +198,7 @@ def sms_dataset(splitRatio = 0.67):
     summaries = summarize_by_class(trainTrainingSet)
     trainPredictions = get_predictions(summaries, trainTestSet)
     trainAccuracy = get_accuracy(trainTestSet, trainPredictions)
-    print("The Accuracy is: %f" %trainAccuracy)
+    print("The SMS dataset's Accuracy(full-format) is: %f" %trainAccuracy)
     testFileLines,testFileDict = read_file_and_return_each_line_and_dictionary("sms_test.tsv")
     testVector = lines_to_vectors_Training(testFileLines, trainFileDict)
     newSummaries = summarize_by_class(trainVectors)
@@ -284,11 +272,11 @@ def summarize_sparseFormat_by_class(dataset):
     return stats_by_class
 
 def summarize_by_class_sparseFormat(dataset):
-	separated = separate_by_class(dataset)
-	summaries = {}
-	for classValue, instances in separated.items():
-		summaries[classValue] = summarize_sparseFormat_by_class(instances)
-	return summaries
+    separated = separate_by_class(dataset)
+    summaries = {}
+    for classValue, instances in separated.items():
+        summaries[classValue] = summarize_sparseFormat_by_class(instances)
+    return summaries
 
 def calculate_probability_sparseFormat(x, Mean, Stdev):
     if Mean == 0 or Stdev == 0:
@@ -313,20 +301,20 @@ def calculate_class_probabilities_sparseFormat(summaries, inputVector):
     return probabilities
 
 def predict_sparseFormat(summaries, inputVector):
-	probabilities = calculate_class_probabilities_sparseFormat(summaries, inputVector)
-	bestLabel, bestProb = None, -1
-	for classValue, probability in probabilities.items():
-		if bestLabel is None or probability > bestProb:
-			bestProb = probability
-			bestLabel = classValue
-	return bestLabel
+    probabilities = calculate_class_probabilities_sparseFormat(summaries, inputVector)
+    bestLabel, bestProb = None, -1
+    for classValue, probability in probabilities.items():
+        if bestLabel is None or probability > bestProb:
+            bestProb = probability
+            bestLabel = classValue
+    return bestLabel
 
 def get_predictions_sparseFormat(summaries, testSet):
-	predictions = []
-	for i in range(len(testSet)):
-		result = predict_sparseFormat(summaries, testSet[i])
-		predictions.append(result)
-	return predictions
+    predictions = []
+    for i in range(len(testSet)):
+        result = predict_sparseFormat(summaries, testSet[i])
+        predictions.append(result)
+    return predictions
 
 def sms_dataset_sparseFormat(splitRatio = 0.67):
     trainLine, trainDict = read_file_and_return_each_line_and_dictionary("sms_train.tsv")
@@ -335,7 +323,7 @@ def sms_dataset_sparseFormat(splitRatio = 0.67):
     summaries= summarize_by_class_sparseFormat(trainVectors)
     trainPredictions = get_predictions_sparseFormat(summaries, testVectors)
     trainAccuracy = get_accuracy(testVectors, trainPredictions)
-    print("The Accuracy is: %f" %trainAccuracy)
+    print("The SMS dataset's Accuracy(sparse-format) is: %f" %trainAccuracy)
     testFileLines,testFileDict = read_file_and_return_each_line_and_dictionary("sms_test.tsv")
     testVectors = lines_to_vectors_Training_sparseFormat(testFileLines, trainDict)
     newSummaries = summarize_by_class_sparseFormat(linesVectors)
@@ -395,12 +383,11 @@ def net_dataset_sparseFormat(splitRatio = 0.67):
     summaries= summarize_by_class_sparseFormat(trainVectors)
     trainPredictions = get_predictions_sparseFormat(summaries, testVectors)
     trainAccuracy = get_accuracy(testVectors, trainPredictions)
-    print("The Accuracy is: %f" %trainAccuracy)
+    print("The NET dataset's Accuracy(sparse-format) is: %f" %trainAccuracy)
     testFileLines,testFileDict = read_net_file_return_lines_and_dictionary("net_test.csv")
     testVectors = lines_to_vectors_Training_sparseFormat(testFileLines, trainDict)
     newSummaries = summarize_by_class_sparseFormat(linesVectors)
     testPredictions = get_predictions_sparseFormat(newSummaries,testVectors)
-    #csvFileName = "NET_results_sparseFormat.csv"
     csvFileName = "XUE_net.csv"
     write_result_in_csv(testPredictions,csvFileName)
 
@@ -412,7 +399,7 @@ def net_dataset(splitRatio = 0.67):
     summaries= summarize_by_class(trainVectors)
     trainPredictions = get_predictions(summaries, testVectors)
     trainAccuracy = get_accuracy(testVectors, trainPredictions)
-    print("The Accuracy is: %f" %trainAccuracy)
+    print("The NET dataset's Accuracy(full-format) is: %f" %trainAccuracy)
     testFileLines,testFileDict = read_net_file_return_lines_and_dictionary("net_test.csv")
     testVectors = lines_to_vectors_Training(testFileLines, trainDict)
     newSummaries = summarize_by_class(linesVectors)
@@ -420,3 +407,33 @@ def net_dataset(splitRatio = 0.67):
     csvFileName = "XUE_net_notSparse.csv"
     write_result_in_csv(testPredictions,csvFileName)
 
+# -----------------------------------------------------------------------------------------------------
+# Results Write Functions
+# -----------------------------------------------------------------------------------------------------
+
+def write_result_in_csv(predictions,csvfile):
+    '''Write results to a csv file'''
+    with open(csvfile, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        count = 1
+        for val in predictions:
+            if val == 0:
+                writer.writerow([count,"ham"])
+                count += 1
+            else:
+                writer.writerow([count,"spam"])
+                count += 1
+
+
+# ---------------------------------------------------------------------------------------------------------
+# main functions
+# ---------------------------------------------------------------------------------------------------------
+def main():
+    print("----Start----")
+    #sms_dataset()
+    sms_dataset_sparseFormat()
+    #net_dataset()
+    net_dataset_sparseFormat()
+    print("----End----")
+
+main()
